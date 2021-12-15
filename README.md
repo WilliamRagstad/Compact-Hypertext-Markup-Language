@@ -33,7 +33,7 @@ Translates to the following HTML:
 </form>
 <div>
     <h1>
-      This text is in the title
+        This text is in the title
     </h1>
 </div>
 ```
