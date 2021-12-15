@@ -7,9 +7,20 @@
     "build": "npx tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "ctml",
+    "compact-hypertext-markup-language",
+    "html",
+    "markup",
+    "markup-language",
+    "hypertext",
+    "compact"
+  ],
+  "author": "William Rågstad",
+  "license": "MIT",
+  "repository": {
+    "url": "https://github.com/WilliamRagstad/Compact-Hypertext-Markup-Language"
+  },
   "devDependencies": {
     "@types/node": "^16.11.12"
   }
