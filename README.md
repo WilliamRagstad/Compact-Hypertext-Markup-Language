@@ -17,7 +17,6 @@ The tool will also support linting, formatting and much more.
 ## Examples
 
 ```dart
-/* Dart is a perfect language mode when writing CTML code */
 $Y: .Yellow;				                 /* Variable Y referencing a class name */
 form#t$Y?action='/validate'?method=POST 	         /* Optional quotes for single word strings */
 /input?name=full_name?placeholder='Enter your name'	 /* The number of / indicates nesting level */
