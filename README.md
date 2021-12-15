@@ -32,7 +32,9 @@ Translates to the following HTML:
     <button onSubmit="javascript:alert(\"Submitting form...\")"></button>
 </form>
 <div>
-    <h1>This text is in the title</h1>
+    <h1>
+      This text is in the title
+    </h1>
 </div>
 ```
 
