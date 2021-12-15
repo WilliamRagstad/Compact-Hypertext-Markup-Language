@@ -11,27 +11,50 @@ A denser version of HTML
 ## Usage
 
 ### CLI
+You can use cli tool to compile `.ctml` files into a direct translation or fully distributable `.html` files.
+The tool will also support linting, formatting and much more.
 
 ## Examples
+
+```dart
+/* Dart is a perfect language mode when writing CTML code */
+$Y: .Yellow;				                 /* Variable Y referencing a class name */
+form#t$Y?action='/validate'?method=POST 	         /* Optional quotes for single word strings */
+/input?name=full_name?placeholder='Enter your name'	 /* The number of / indicates nesting level */
+/button?onSubmit={alert("Submitting form...")}		 /* Elements with the same nesting level are siblings */
+div/h1/'This text is in the title'		         /* Raw text is denoted using quotes instead of a tagname*/
+```
+
+Translates to the following HTML:
+  
+```html
+<form id="t" class="Yellow" action="/validate" method="POST">
+    <input name="full_name" placeholder="Enter your name" />
+    <button onSubmit="javascript:alert(\"Submitting form...\")"></button>
+</form>
+<div>
+    <h1>This text is in the title</h1>
+</div>
+```
 
 ## Development
 
 - Clone this `repo` to a local environment
 - Run the following commands to set up the Development server:
 
-  ```shell
-  # Clone
-  git clone https://github.com/WilliamRagstad/Compact-Hypertext-Markup-Language && cd $_
-  
-  # Install deps
-  npm install
+```shell
+# Clone
+git clone https://github.com/WilliamRagstad/Compact-Hypertext-Markup-Language && cd $_
 
-  # Build project
-  npm run build
-  
-  # Run example
-  npx ts-node .\src\ctml.ts .\examples\form.ctml
-  ```
+# Install deps
+npm install
+
+# Build project
+npm run build
+
+# Run example
+npx ts-node .\src\ctml.ts .\examples\form.ctml
+```
 
 ## Authors
 
