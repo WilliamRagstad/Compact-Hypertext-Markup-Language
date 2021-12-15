@@ -7,3 +7,36 @@ Minimize your project files by using a compact markup language.
 
 # Compact Hypertext Markup Language (CTML)
 A denser version of HTML
+
+## Usage
+
+### CLI
+
+## Examples
+
+## Development
+
+- Clone this `repo` to a local environment
+- Run the following commands to set up the Development server:
+
+  ```shell
+  # Clone
+  git clone https://github.com/WilliamRagstad/Compact-Hypertext-Markup-Language && cd $_
+  
+  # Install deps
+  npm install
+
+  # Build project
+  npm run build
+  
+  # Run example
+  npx ts-node .\src\ctml.ts .\examples\form.ctml
+  ```
+
+## Authors
+
+- [WilliamRagstad](https://github.com/WilliamRagstad)
+
+## License
+
+- [MIT](https://wei.mit-license.org)
