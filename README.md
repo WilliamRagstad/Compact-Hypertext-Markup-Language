@@ -17,8 +17,12 @@ The tool will also support linting, formatting and much more.
 $Y: .Yellow				                 /* Variable Y referencing a class name */
 form#t$Y?action='/validate'?method=POST 	         /* Optional quotes for single word strings */
 /input?name=full_name?placeholder='Enter your name'	 /* The number of / indicates nesting level */
-/button?onSubmit={alert("Submitting form...")}		 /* Elements with the same nesting level are siblings */
+/button?onSubmit=`alert("Submitting form...")`		 /* Elements with the same nesting level are siblings */
+/ /'Submit'											/* Child of form and child of button (last-last) */
 div/h1/'This text is in the title'		         /* Raw text is denoted using quotes instead of a tagname*/
+script/`
+    console.log("Hello World!");
+`
 ```
 
 Translates to the following HTML:
@@ -26,13 +30,18 @@ Translates to the following HTML:
 ```html
 <form id="t" class="Yellow" action="/validate" method="POST">
     <input name="full_name" placeholder="Enter your name" />
-    <button onSubmit="javascript:alert(\"Submitting form...\")"></button>
+    <button onSubmit="alert(\"Submitting form...\")">
+        Submit
+    </button>
 </form>
 <div>
     <h1>
         This text is in the title
     </h1>
 </div>
+<script>
+    console.log("Hello World!");
+</script>
 ```
 
 ## Development
