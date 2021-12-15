@@ -17,7 +17,7 @@ The tool will also support linting, formatting and much more.
 ## Examples
 
 ```dart
-$Y: .Yellow;				                 /* Variable Y referencing a class name */
+$Y: .Yellow				                 /* Variable Y referencing a class name */
 form#t$Y?action='/validate'?method=POST 	         /* Optional quotes for single word strings */
 /input?name=full_name?placeholder='Enter your name'	 /* The number of / indicates nesting level */
 /button?onSubmit={alert("Submitting form...")}		 /* Elements with the same nesting level are siblings */
