@@ -37,8 +37,8 @@ Translates to the following HTML:
 
 ## Development
 
-- Clone this `repo` to a local environment
-- Run the following commands to set up the Development server:
+- Clone this `repo` to your local development environment
+- Run the following commands to build and run the project:
 
 ```shell
 # Clone
