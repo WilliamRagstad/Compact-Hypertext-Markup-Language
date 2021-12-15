@@ -1,0 +1,16 @@
+{
+  "name": "compact-hypertext-markup-language",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/ctml.ts",
+  "scripts": {
+    "build": "npx tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^16.11.12"
+  }
+}
