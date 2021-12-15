@@ -3,7 +3,7 @@
 Are you tired of the endless whitespace, angle brackets and nesting. Would you like to write more compact and lighter HTML?
 If so, ***Compact Hypertext Markup Language (CTML)*** is built for people just like you!
 
-Minimize your project files by using a compact markup language. Effectively reducing your code by more than 30%! 🎉
+Minimize your project files by using a compact markup language, effectively reducing your code by more than **30%**! 🎉
 
 ## Usage
 
