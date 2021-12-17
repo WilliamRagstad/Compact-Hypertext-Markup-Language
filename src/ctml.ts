@@ -1,26 +1,37 @@
 import fs, { stat } from 'fs';
 
+
+/*
+
+  dP""b8 888888 8b    d8 88                  `Yb.       88  88 888888 8b    d8 88          dP""b8  dP"Yb  8b    d8 88""Yb 88 88     888888 88""Yb
+ dP   `"   88   88b  d88 88         ________   `Yb.     88  88   88   88b  d88 88         dP   `" dP   Yb 88b  d88 88__dP 88 88     88__   88__dP
+ Yb        88   88YbdP88 88  .o     """"""""   .dP'     888888   88   88YbdP88 88  .o     Yb      Yb   dP 88YbdP88 88"""  88 88  .o 88""   88"Yb
+  YboodP   88   88 YY 88 88ood8              .dP'       88  88   88   88 YY 88 88ood8      YboodP  YbodP  88 YY 88 88     88 88ood8 888888 88  Yb
+
+*/
+
+
 const DEBUG = false;
 
 
 /*
- 
- 888888 Yb  dP 88""Yb 888888 .dP"Y8 
-   88    YbdP  88__dP 88__   `Ybo." 
-   88     8P   88"""  88""   o.`Y8b 
-   88    dP    88     888888 8bodP' 
- 
+
+ 888888 Yb  dP 88""Yb 888888 .dP"Y8
+   88    YbdP  88__dP 88__   `Ybo."
+   88     8P   88"""  88""   o.`Y8b
+   88    dP    88     888888 8bodP'
+
 */
 
-class Element {
+class CtmlElement {
     tag: string;
     id: string | undefined;
     classes: string[] = [];
     attributes: Record<string, string> = { };
-    children: Element[] = [];
+    children: CtmlElement[] = [];
     text: string | undefined;
 
-    constructor(tag: string, id?: string, classes?: string[], attributes?: Record<string, string>, children?: Element[]) {
+    constructor(tag: string, id?: string, classes?: string[], attributes?: Record<string, string>, children?: CtmlElement[]) {
         this.tag = tag;
         this.id = id;
         this.classes = classes || [];
@@ -32,12 +43,12 @@ const textTag = 'RAW_TEXT';
 
 
 /*
- 
- 88""Yb    db    88""Yb .dP"Y8 88 88b 88  dP""b8 
- 88__dP   dPYb   88__dP `Ybo." 88 88Yb88 dP   `" 
- 88"""   dP__Yb  88"Yb  o.`Y8b 88 88 Y88 Yb  "88 
- 88     dP""""Yb 88  Yb 8bodP' 88 88  Y8  YboodP 
- 
+
+ 88""Yb    db    88""Yb .dP"Y8 88 88b 88  dP""b8
+ 88__dP   dPYb   88__dP `Ybo." 88 88Yb88 dP   `"
+ 88"""   dP__Yb  88"Yb  o.`Y8b 88 88 Y88 Yb  "88
+ 88     dP""""Yb 88  Yb 8bodP' 88 88  Y8  YboodP
+
 */
 
 type char = string;
@@ -47,23 +58,23 @@ type Patt = string;
 
 const stringQuotes = "\"'`";
 
-function parseContent(content: string): Element[] {
-    let elements: Element[] = [];
+function parseContent(content: string): CtmlElement[] {
+    let elements: CtmlElement[] = [];
     let variables: string[] = [];
-    
+
     let c: char = '';
     let nc: char =  '';
     let nesting = 0;
     let i: number;
 
-    function insertElement(elm: Element, nestingLevel: number) {
+    function insertElement(elm: CtmlElement, nestingLevel: number) {
         if (nestingLevel === 0) {
             elements.push(elm);
         } else if (nestingLevel === 1) {
             let last = elements[elements.length - 1];
             last.children.push(elm);
         } else {
-            let parent: Element | undefined = undefined;
+            let parent: CtmlElement | undefined = undefined;
             while(nestingLevel > 0) {
                 parent = elements[elements.length - 1];
                 if (parent.children.length > 0) {
@@ -79,7 +90,7 @@ function parseContent(content: string): Element[] {
     function getChars(ignoreWhitespace: boolean = true) {
         c = content[i];
         nc = content[i+1]; // Look ahead one character
-        
+
         // Skip whitespace
         if (ignoreWhitespace && (c === ' ' || c === '\t' || c === '\r')) next(1, ignoreWhitespace);
     }
@@ -110,7 +121,7 @@ function parseContent(content: string): Element[] {
                 match = pattern(content[i], content[i+1]);
             }
             else throw new Error('Invalid pattern type');
-            
+
             if(match) break;
             read += content[i++];
         }
@@ -156,7 +167,7 @@ function parseContent(content: string): Element[] {
         getChars();
         if (i + pattern.length >= content.length) return false;
         for(let j = 0; j < pattern.length; j++) {
-            if (content[i + j] !== pattern[j]) return false; 
+            if (content[i + j] !== pattern[j]) return false;
         }
         return true;
     }
@@ -215,7 +226,7 @@ function parseContent(content: string): Element[] {
         if (isLetter(c)) {
             // New element starts
             const name = readWhile(isAlphanumeric);
-            const element = new Element(name);
+            const element = new CtmlElement(name);
             // Parse id, classes and attributes
             while(peekMatch('.') || peekMatch('#') || peekMatch('?') || peekMatch('$')) {
                 if (peekMatch('#')) {
@@ -241,7 +252,7 @@ function parseContent(content: string): Element[] {
         else if (stringQuotes.includes(c)) {
             // New text starts
             const text = parseValue();
-            const textElement = new Element(textTag);
+            const textElement = new CtmlElement(textTag);
             textElement.text = text;
             rollback();
             insertElement(textElement, nesting);
@@ -252,7 +263,7 @@ function parseContent(content: string): Element[] {
         console.log(`Variables: ${variables.join(', ')}`);
         console.log(`Elements:`);
 
-        function printElement(el: Element, indent: number) {
+        function printElement(el: CtmlElement, indent: number) {
             const spaces = '  '.repeat(indent);
             if (el.tag === textTag) {
                 console.log(`${spaces}text: '${el.text?.trim()}'`);
@@ -296,12 +307,12 @@ function or(...funcs: Pred[]): Pred {
 }
 
 /*
- 
-  dP""b8  dP"Yb  8888b.  888888      dP""b8 888888 88b 88 888888 88""Yb    db    888888 88  dP"Yb  88b 88 
- dP   `" dP   Yb  8I  Yb 88__       dP   `" 88__   88Yb88 88__   88__dP   dPYb     88   88 dP   Yb 88Yb88 
- Yb      Yb   dP  8I  dY 88""       Yb  "88 88""   88 Y88 88""   88"Yb   dP__Yb    88   88 Yb   dP 88 Y88 
-  YboodP  YbodP  8888Y"  888888      YboodP 888888 88  Y8 888888 88  Yb dP""""Yb   88   88  YbodP  88  Y8 
- 
+
+  dP""b8  dP"Yb  8888b.  888888      dP""b8 888888 88b 88 888888 88""Yb    db    888888 88  dP"Yb  88b 88
+ dP   `" dP   Yb  8I  Yb 88__       dP   `" 88__   88Yb88 88__   88__dP   dPYb     88   88 dP   Yb 88Yb88
+ Yb      Yb   dP  8I  dY 88""       Yb  "88 88""   88 Y88 88""   88"Yb   dP__Yb    88   88 Yb   dP 88 Y88
+  YboodP  YbodP  8888Y"  888888      YboodP 888888 88  Y8 888888 88  Yb dP""""Yb   88   88  YbodP  88  Y8
+
 */
 
 function escapeText(text: string): string {
@@ -309,7 +320,7 @@ function escapeText(text: string): string {
     return text.replace(/"/g, '\\"');
 }
 
-function generateHTML(elements: Element[], indent = 0): string {
+function generateHTML(elements: CtmlElement[], indent = 0): string {
     let html = '';
 
     for(let i = 0; i < elements.length; i++) {
@@ -337,6 +348,15 @@ function generateHTML(elements: Element[], indent = 0): string {
     return html;
 }
 
+
+/*
+
+ 888888 Yb  dP 88""Yb  dP"Yb  88""Yb 888888 888888 8888b.      888888 88   88 88b 88  dP""b8 888888 88  dP"Yb  88b 88 .dP"Y8
+ 88__    YbdP  88__dP dP   Yb 88__dP   88   88__    8I  Yb     88__   88   88 88Yb88 dP   `"   88   88 dP   Yb 88Yb88 `Ybo."
+ 88""    dPYb  88"""  Yb   dP 88"Yb    88   88""    8I  dY     88""   Y8   8P 88 Y88 Yb        88   88 Yb   dP 88 Y88 o.`Y8b
+ 888888 dP  Yb 88      YbodP  88  Yb   88   888888 8888Y"      88     `YbodP' 88  Y8  YboodP   88   88  YbodP  88  Y8 8bodP'
+
+*/
 
 /**
  * Compile CTML to HTML
@@ -370,7 +390,7 @@ export function CompileFileTo(filepath: string, outfolder: string): void {
     const filename_noext = filename.substring(0, filename.lastIndexOf('.'));
     const outfile = `${outfolder}\\${filename_noext}.html`;
     console.log(`Compiling ${filename} to ${outfile}...`);
-    
+
     const content = fs.readFileSync(filepath, 'utf8');
     const html = CompileCTML(content);
 
