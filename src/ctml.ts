@@ -40,6 +40,23 @@ class CtmlElement {
     }
 }
 const textTag = 'RAW_TEXT';
+// http://xahlee.info/js/html5_non-closing_tag.html
+const selfClosingTags = [
+	'area',
+	'base',
+	'br',
+	'col',
+	'embed',
+	'hr',
+	'img',
+	'input',
+	'link',
+	'meta',
+	'param',
+	'source',
+	'track',
+	'wbr'
+];
 
 
 /*
@@ -74,13 +91,10 @@ function parseContent(content: string): CtmlElement[] {
             let last = elements[elements.length - 1];
             last.children.push(elm);
         } else {
-            let parent: CtmlElement | undefined = undefined;
-            while(nestingLevel > 0) {
-                parent = elements[elements.length - 1];
-                if (parent.children.length > 0) {
-                    parent = parent.children[parent.children.length - 1];
-                }
-                nestingLevel--;
+			let parent: CtmlElement | undefined = elements[elements.length - 1];
+            while(nestingLevel > 1) {
+				parent = parent?.children[parent.children.length - 1];
+				nestingLevel--;
             }
             if (parent !== undefined) parent.children.push(elm);
         }
@@ -342,9 +356,14 @@ function generateHTML(elements: CtmlElement[], indent = 0): string {
             const [attrName, attrVal] = attributes[j];
             html += ` ${attrName}="${escapeText(attrVal)}"`;
         }
-        html += '>\n';
-        if (element.children.length > 0) html += generateHTML(element.children, indent + 1);
-        html += `${spaces}</${element.tag}>\n`;
+		if (selfClosingTags.includes(element.tag)) {
+			if (element.children.length > 0) throw new Error(`Self-closing tag ${element.tag} has children`);
+			html += ' />\n';
+		} else {
+			html += '>\n';
+			if (element.children.length > 0) html += generateHTML(element.children, indent + 1);
+			html += `${spaces}</${element.tag}>\n`;
+		}
     }
 
     return html;
