@@ -11,7 +11,7 @@ import fs, { stat } from 'fs';
 */
 
 
-const DEBUG = false;
+const DEBUG = true;
 
 
 /*
@@ -171,6 +171,8 @@ function parseContent(content: string): CtmlElement[] {
         }
         return true;
     }
+
+
     for (i = 0; i < content.length; i++) {
         getChars();
         // Skip comments
