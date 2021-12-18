@@ -92,13 +92,10 @@ function parseContent(content: string): HtmlElement[] {
             let last = elements[elements.length - 1];
             last.children.push(elm);
         } else {
-            let parent: HtmlElement | undefined = undefined;
-            while(nestingLevel > 0) {
-                parent = elements[elements.length - 1];
-                if (parent.children.length > 0) {
-                    parent = parent.children[parent.children.length - 1];
-                }
-                nestingLevel--;
+            let parent: HtmlElement | undefined = elements[elements.length - 1];
+            while(nestingLevel > 1) {
+				parent = parent?.children[parent.children.length - 1];
+				nestingLevel--;
             }
             if (parent !== undefined) parent.children.push(elm);
         }
@@ -275,7 +272,7 @@ function parseContent(content: string): HtmlElement[] {
 	}
 	if (DEBUG) {
         console.log('=== Parse results ===');
-        console.log(`Elements:`);
+        console.log('Elements:');
 		function printElement(el: HtmlElement, indent: number) {
             const spaces = '  '.repeat(indent);
             if (el.tag === textTag) {
@@ -342,18 +339,36 @@ function not(func: Pred | Pred1): Pred {
 
 */
 
-function generateCTML(elements: HtmlElement[], indent = 0): string {
+function generateCTML(elements: HtmlElement[], nestingLevel = 0): string {
 	let ctml = '';
 
 	for(let i = 0; i < elements.length; i++) {
         const element = elements[i];
-        const spaces = '    '.repeat(indent);
+		ctml += '/'.repeat(nestingLevel);
         // If element is a text element, just print it
         if (element.tag === textTag) {
-            ctml += `${spaces}${element.text}\n`;
+			const quotes = !element.text?.includes('"') ? '"' : !element.text?.includes("'") ? "'" : '`';
+            ctml += `${quotes}${element.text}${quotes}`;
+			ctml += '\n';
             continue;
         }
         // Else, print the tag
+		ctml += element.tag;
+		if (element.id) ctml += `#${element.id}`;
+		if (element.classes.length > 0) ctml += `.${element.classes.join('.')}`;
+		for (const [name, value] of Object.entries(element.attributes)) {
+			if (value === undefined) {
+				ctml += `?${name}=true`;
+			}
+			else {
+				ctml += `?${name}='${value}'`;
+			}
+		}
+		if(element.children.length > 0) {
+			ctml += '\n';
+			ctml += generateCTML(element.children, nestingLevel + 1);
+		}
+		ctml += '\n';
     }
 
 	return ctml;
