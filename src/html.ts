@@ -11,7 +11,7 @@ import fs, { stat } from 'fs';
 */
 
 
-const DEBUG = false;
+const DEBUG = true;
 
 
 /*
@@ -27,11 +27,11 @@ class HtmlElement {
     tag: string;
     id: string | undefined;
     classes: string[] = [];
-    attributes: Record<string, string> = { };
+    attributes: Record<string, string | undefined> = { };
     children: HtmlElement[] = [];
-    text: string | undefined;
+    text: string | undefined; // If tag is RAW_TEXT then this is the text
 
-    constructor(tag: string, id?: string, classes?: string[], attributes?: Record<string, string>, children?: Element[]) {
+    constructor(tag: string, id?: string, classes?: string[], attributes?: Record<string, string>, children?: HtmlElement[]) {
         this.tag = tag;
         this.id = id;
         this.classes = classes || [];
@@ -39,8 +39,25 @@ class HtmlElement {
         this.children = children || [];
     }
 }
-const textTag = 'RAW_TEXT';
 
+const textTag = 'RAW_TEXT';
+// http://xahlee.info/js/html5_non-closing_tag.html
+const selfClosingTags = [
+	'area',
+	'base',
+	'br',
+	'col',
+	'embed',
+	'hr',
+	'img',
+	'input',
+	'link',
+	'meta',
+	'param',
+	'source',
+	'track',
+	'wbr'
+];
 
 /*
 
@@ -51,11 +68,270 @@ const textTag = 'RAW_TEXT';
 
 */
 
+type char = string | undefined;
+type Pred = (c: char) => boolean;
+type Pred1 = (c: char, nc: char | undefined) => boolean; // One char lookahead
+type Patt = string;
+
+const stringQuotes = "\"'";
+
 function parseContent(content: string): HtmlElement[] {
     let elements: HtmlElement[] = [];
+	let elementHistory: string[] = []; // Path of elements to the current element
+
+	let i: number;
+    let nesting = 0;
+    let c: char = '';
+    let nc: char =  '';
+    let nnc: char =  '';
+
+	function insertElement(elm: HtmlElement, nestingLevel: number) {
+        if (nestingLevel === 0) {
+            elements.push(elm);
+        } else if (nestingLevel === 1) {
+            let last = elements[elements.length - 1];
+            last.children.push(elm);
+        } else {
+            let parent: HtmlElement | undefined = undefined;
+            while(nestingLevel > 0) {
+                parent = elements[elements.length - 1];
+                if (parent.children.length > 0) {
+                    parent = parent.children[parent.children.length - 1];
+                }
+                nestingLevel--;
+            }
+            if (parent !== undefined) parent.children.push(elm);
+        }
+    }
+
+
+    // Parsing helper functions
+    function getChars(ignoreWhitespace: boolean = true) {
+        c = content[i];
+		// Look ahead two characters
+        nc = content[i+1];
+        nnc = content[i+2];
+
+        // Skip whitespace
+        if (ignoreWhitespace && (c === ' ' || c === '\t' || c === '\n' || c === '\r')) next(1, true);
+    }
+    function next(n: number = 1, ignoreWhitespace: boolean = true) {
+        i += n;
+        getChars(ignoreWhitespace);
+    }
+    function rollback(n: number = 1) {
+        i -= n;
+    }
+    function readUntil(pattern: Patt | Pred | Pred1) {
+        let read = '';
+        let match: boolean;
+        while(i < content.length) {
+            if (typeof pattern === 'string') {
+                match = true;
+                for(let j = 0; j < pattern.length && i + j < content.length; j++) {
+                    if(content[i + j] != pattern[j]) {
+                        match = false;
+                        break;
+                    }
+                }
+            }
+            else if (typeof pattern === 'function') {
+                match = pattern(content[i], content[i+1]);
+            }
+            else throw new Error('Invalid pattern type');
+
+            if(match) break;
+            read += content[i++];
+        }
+        return read;
+    }
+    function readWhile(predicate: Pred | Pred1) {
+        let read = '';
+        while(i < content.length && predicate(content[i], content[i+1])) read += content[i++];
+        getChars();
+        return read;
+    }
+    function peekMatch(pattern: Patt | Pred | Pred1) {
+        getChars();
+		if (typeof pattern === 'string') {
+			if (i + pattern.length > content.length) return false;
+			for(let j = 0; j < pattern.length; j++) {
+				if (content[i + j] !== pattern[j]) return false;
+			}
+		}
+		else if (typeof pattern === 'function') {
+			return pattern(content[i], content[i+1]);
+		}
+		else throw new Error('Invalid pattern type');
+        return true;
+    }
+
+
+	for(i = 0; i < content.length; i++) {
+		getChars();
+		// Skip comments
+		if (peekMatch('<!--')) {
+			next(4);
+			const comment = readUntil('-->');
+			next(3);
+            if (DEBUG) console.log(`Comment: '${comment.trim()}'`);
+			rollback(1);
+			continue;
+		}
+		// Check new tag
+		if (peekMatch('<')) {
+			next(1);
+			// Check if it's a closing tag
+			const closingTag = peekMatch('/');
+			if (closingTag) next(1);
+
+			// Read tag name
+			const tagName = readWhile(not(tagNameEnd));
+
+			// If it is a closing tag, pop the last element from the history and decrement nesting level
+			if (closingTag) {
+				// Parse the remaining closing tag character
+				if (!peekMatch('>')) throw new Error('Invalid closing tag');
+
+				if (elementHistory.length === 0) {
+					throw new Error(`Unexpected closing tag '${tagName}'`);
+				}
+				const last = elementHistory.pop();
+				if (last !== tagName) {
+					throw new Error(`Could not find tag '${tagName}' to close`);
+				}
+				nesting--;
+				continue;
+			}
+
+			const element = new HtmlElement(tagName);
+			// Loop through and read id, classes and attributes
+			while(peekMatch(isLetter)) {
+				const attrName = readWhile(isAttributeName);
+				let attrValue: string | undefined;
+				if (peekMatch('=')) {
+					next(1);
+					// Check if attribute is a string
+					if (stringQuotes.includes(c)) {
+						const quote = c;
+						next(1);
+						attrValue = readUntil((s: char) => s === quote);
+						next(1);
+					}
+					else {
+						attrValue = readWhile(not(attributeValueEnd));
+					}
+				}
+				else {
+					attrValue = undefined;
+				}
+
+				switch (attrName) {
+					case 'id':
+						// Check that id is not already set
+						if (element.id !== undefined) throw new Error('Duplicate id');
+						// Check that id is valid
+						if (attrValue === undefined) throw new Error('Invalid id');
+						element.id = attrValue;
+						break;
+					case 'class':
+						// Check that classes is not already set
+						if (element.classes.length > 0) throw new Error(`Classes already set for element '${element.tag}'`);
+						// Check that classes is valid
+						if (attrValue === undefined) throw new Error('Invalid classes');
+						element.classes = attrValue.trim().split(' ');
+						break;
+					default:
+						element.attributes[attrName] = attrValue;
+				}
+			}
+
+			// Skip !DOCTYPE
+			if (tagName === '!DOCTYPE') continue;
+
+			insertElement(element, nesting);
+
+			// Check if it's a known self closing tag
+			if (selfClosingTags.includes(tagName)) {
+				if (DEBUG) console.log(`Self closing tag '${tagName}'`);
+				// Skip any optional closing />
+				if (peekMatch('/')) next(1);
+				continue;
+			}
+			// Else it's a normal tag, so push it to the history and expect a closing tag later on
+			elementHistory.push(tagName);
+			nesting++;
+		}
+		else {
+			// Read text
+			const text = readUntil(tagStart);
+			rollback(1); // Rollback the tag start character
+			if (text.length > 0) {
+				const textElement = new HtmlElement(textTag);
+				textElement.text = text;
+				insertElement(textElement, nesting);
+			}
+		}
+	}
+	if (DEBUG) {
+        console.log('=== Parse results ===');
+        console.log(`Elements:`);
+		function printElement(el: HtmlElement, indent: number) {
+            const spaces = '  '.repeat(indent);
+            if (el.tag === textTag) {
+                console.log(`${spaces}  text: '${el.text?.trim()}'`);
+                return;
+            }
+            console.log(`${spaces}${el.tag}`);
+            if (el.id) console.log(`${spaces}  id: '${el.id}'`);
+            if (el.classes.length > 0) console.log(`${spaces}  classes: ${el.classes.join(', ')}`);
+            if (el.text) console.log(`${spaces}  text: '${el.text}'`);
+            if (Object.entries(el.attributes).length > 0) {
+                console.log(`${spaces}  attributes:`);
+                for(const [name, value] of Object.entries(el.attributes)) {
+					if (value === undefined) {
+						console.log(`${spaces}    ${name}`);
+					}
+					else {
+                    	console.log(`${spaces}    ${name}: '${value}'`);
+					}
+                }
+            }
+            for(const child of el.children) {
+                printElement(child, indent + 1);
+            }
+        }
+
+        for(const el of elements) {
+            printElement(el, 1);
+        }
+        console.log('\n');
+	}
 
 	return elements;
 }
+
+// Identification helping functions
+const isAlphanumeric = (c: char) => !!c && /[a-zA-Z0-9]/.test(c);
+const isLetter: Pred = (c: char) => !!c && /[a-zA-Z]/.test(c);
+const isDigit:  Pred = (c: char) => !!c && /[0-9]/.test(c);
+const isNumber:  Pred = (c: char) => !!c && /[0-9]+(\.[0-9]+)?/.test(c);
+const tagStart: Pred = (c: char) => c === '<';
+const tagEnd: Pred = (c: char) => c === '>' || c === '/';
+const tagNameEnd: Pred = (c: char) => c === ' ' || tagEnd(c);
+const isAttributeName: Pred = (c: char) => isAlphanumeric(c) || c === '-' || c === '_';
+const attributeValueEnd: Pred = (c: char) => c === ' ' || tagEnd(c);
+
+// Combinatorical logic used for parsing function composing
+const isOf: (...chars: char[]) => Pred = (...chars: char[]) => (c: char) => chars.includes(c);
+
+function or(...funcs: Pred[]): Pred {
+    return c => funcs.some(f => f(c));
+}
+function not(func: Pred | Pred1): Pred {
+	return c => !func(c, undefined);
+}
+
 
 /*
 
@@ -67,7 +343,20 @@ function parseContent(content: string): HtmlElement[] {
 */
 
 function generateCTML(elements: HtmlElement[], indent = 0): string {
+	let ctml = '';
 
+	for(let i = 0; i < elements.length; i++) {
+        const element = elements[i];
+        const spaces = '    '.repeat(indent);
+        // If element is a text element, just print it
+        if (element.tag === textTag) {
+            ctml += `${spaces}${element.text}\n`;
+            continue;
+        }
+        // Else, print the tag
+    }
+
+	return ctml;
 }
 
 
@@ -87,8 +376,8 @@ function generateCTML(elements: HtmlElement[], indent = 0): string {
  */
  export function CompileHTML(source: string): string {
     const elements = parseContent(source);
-    const html = generateCTML(elements);
-    return html;
+    const ctml = generateCTML(elements);
+    return ctml;
 }
 
 
@@ -98,15 +387,15 @@ function generateCTML(elements: HtmlElement[], indent = 0): string {
  */
  export function CompileFile(filepath: string): string {
     const content = fs.readFileSync(filepath, 'utf8');
-    const html = CompileHTML(content);
+    const ctml = CompileHTML(content);
 
-    return html;
+    return ctml;
 }
 
 // Script mode
 if (require.main === module) {
     // Compile the CTML file
-    const html = CompileFile(process.argv[2]);
-    if (DEBUG) console.log("=== Generated HTML ===");
-    console.log(html);
+    const ctml = CompileFile(process.argv[2]);
+    if (DEBUG) console.log("=== Generated CTML ===");
+    console.log(ctml);
 }
