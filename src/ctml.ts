@@ -28,6 +28,7 @@ class CtmlElement {
     id: string | undefined;
     classes: string[] = [];
     attributes: Record<string, string> = { };
+	parent: CtmlElement | undefined;
     children: CtmlElement[] = [];
     text: string | undefined;
 
@@ -335,16 +336,59 @@ function escapeText(text: string): string {
     // Escape all double quotes
     return text.replace(/"/g, '\\"');
 }
-
-function generateHTML(elements: CtmlElement[], indent = 0): string {
+/**
+ * Generates a string of HTML from a CtmlElement tree list
+ * @param elements The elements to be rendered
+ * @param enforceStructure If true, the HTML structure will be enforced
+ * @param indent The indentation to use for each line
+ * @returns The rendered HTML
+ */
+function generateHTML(elements: CtmlElement[], enforceStructure: boolean, indent = 0): string {
     let html = '';
+
+	const spacing = (n: number) => '  '.repeat(n);
+
+	let enforceStructureEndFunc: (() => void) | undefined = undefined;
+	if (enforceStructure) {
+		// Check if elements contains a <html> tag
+		if (elements.length === 1 && elements[0].tag === 'html') {
+			// If simply add a <!DOCTYPE html> tag to the beginning
+			html += '<!DOCTYPE html>\n';
+		} else if (elements.length === 2 && elements[0].tag === 'head' && elements[1].tag === 'body') {
+			// If elements contains a <head> and <body> tag, add a <!DOCTYPE html> tag to the beginning
+			html += '<!DOCTYPE html>\n';
+			html += '<html>\n';
+			enforceStructureEndFunc = () => html += '</html>\n';
+		} else if (elements.length === 1 && elements[0].tag === 'body') {
+			// If elements contains a <body> tag, add a <!DOCTYPE html> tag to the beginning
+			html += '<!DOCTYPE html>\n';
+			html += '<html>\n';
+			html += `${spacing(1)}<head></head>\n`;
+			indent = 1;
+			enforceStructureEndFunc = () => html += '</html>\n';
+		} else {
+			// If elements contains other tags, add a <!DOCTYPE html> tag to the beginning
+			html += '<!DOCTYPE html>\n';
+			html += '<html>\n';
+			html += `${spacing(1)}<head></head>\n`;
+			html += `${spacing(1)}<body>\n`;
+			indent = 2;
+			enforceStructureEndFunc = () => html += `${spacing(1)}<body>\n</html>\n`;
+		}
+	}
 
     for(let i = 0; i < elements.length; i++) {
         const element = elements[i];
-        const spaces = '    '.repeat(indent);
+        const spaces = spacing(indent);
         // If element is a text element, just print it
         if (element.tag === textTag) {
-            html += `${spaces}${element.text}\n`;
+			if (element.text === undefined) throw new Error('Text element has no text');
+
+			html += spaces + element.text.split('\n').reduce((acc, line) => {
+				const trimmed = line.trim();
+				if (trimmed.length === 0) return acc;
+				return `${acc}\n${spaces}${trimmed}`; // Trim each line and indent properly
+			}) + '\n';
             continue;
         }
         // Else, print the tag
@@ -361,10 +405,12 @@ function generateHTML(elements: CtmlElement[], indent = 0): string {
 			html += ' />\n';
 		} else {
 			html += '>\n';
-			if (element.children.length > 0) html += generateHTML(element.children, indent + 1);
+			if (element.children.length > 0) html += generateHTML(element.children, false, indent + 1);
 			html += `${spaces}</${element.tag}>\n`;
 		}
     }
+
+	enforceStructureEndFunc?.call(null);
 
     return html;
 }
@@ -383,9 +429,9 @@ function generateHTML(elements: CtmlElement[], indent = 0): string {
  * Compile CTML to HTML
  * @param {string} content The CTMl content to compile
  */
- export function CompileCTML(source: string): string {
+ export function CompileCTML(source: string, enforceStructure: boolean): string {
     const elements = parseContent(source);
-    const html = generateHTML(elements);
+    const html = generateHTML(elements, enforceStructure);
     return html;
 }
 
@@ -394,9 +440,9 @@ function generateHTML(elements: CtmlElement[], indent = 0): string {
  * Compile a CTML file into HTML
  * @param file The file to compile to HTML
  */
-export function CompileFile(filepath: string): string {
+export function CompileFile(filepath: string, enforceStructure = true): string {
     const content = fs.readFileSync(filepath, 'utf8');
-    const html = CompileCTML(content);
+    const html = CompileCTML(content, enforceStructure);
 
     return html;
 }
@@ -405,7 +451,7 @@ export function CompileFile(filepath: string): string {
  * @param filepath The file to compile to HTML
  * @param outfolder The folder to output the compiled HTML to
  */
-export function CompileFileTo(filepath: string, outfolder: string): void {
+export function CompileFileTo(filepath: string, outfolder: string, enforceStructure = true): void {
     const filename = filepath.substring(filepath.lastIndexOf('\\')+1);
     const filedir = filepath.substring(0, filepath.lastIndexOf('\\'));
     const filename_noext = filename.substring(0, filename.lastIndexOf('.'));
@@ -413,7 +459,7 @@ export function CompileFileTo(filepath: string, outfolder: string): void {
     console.log(`Compiling ${filename} to ${outfile}...`);
 
     const content = fs.readFileSync(filepath, 'utf8');
-    const html = CompileCTML(content);
+    const html = CompileCTML(content, enforceStructure);
 
     fs.writeFileSync(outfile, html);
 }
@@ -422,7 +468,7 @@ export function CompileFileTo(filepath: string, outfolder: string): void {
 // Script mode
 if (require.main === module) {
     // Compile the CTML file
-    const html = CompileFile(process.argv[2]);
+    const html = CompileFile(process.argv[2], true);
     if (DEBUG) console.log("=== Generated HTML ===");
     console.log(html);
 }
