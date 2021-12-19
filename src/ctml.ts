@@ -87,16 +87,16 @@ function parseContent(content: string): CtmlElement[] {
     function insertElement(elm: CtmlElement, nestingLevel: number) {
         if (nestingLevel === 0) {
             elements.push(elm);
-        } else if (nestingLevel === 1) {
-            let last = elements[elements.length - 1];
-            last.children.push(elm);
         } else {
 			let parent: CtmlElement | undefined = elements[elements.length - 1];
             while(nestingLevel > 1) {
 				parent = parent?.children[parent.children.length - 1];
 				nestingLevel--;
             }
-            if (parent !== undefined) parent.children.push(elm);
+            if (parent !== undefined) {
+				elm.parent = parent;
+				parent.children.push(elm);
+			}
         }
     }
 
