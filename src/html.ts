@@ -342,6 +342,9 @@ function not(func: Pred | Pred1): Pred {
 function generateCTML(elements: HtmlElement[], nestingLevel = 0): string {
 	let ctml = '';
 
+	// Reduce tree to canonical form
+	elements = canonicalize(elements);
+
 	for(let i = 0; i < elements.length; i++) {
         const element = elements[i];
 		ctml += '/'.repeat(nestingLevel);
@@ -372,6 +375,20 @@ function generateCTML(elements: HtmlElement[], nestingLevel = 0): string {
     }
 
 	return ctml;
+}
+
+function canonicalize(elements: HtmlElement[]): HtmlElement[] {
+	if (elements.length === 1 && elements[0].tag === 'html') {
+		return canonicalize(elements[0].children);
+	}
+	const head = elements.find(e => e.tag === 'head');
+	const body = elements.find(e => e.tag === 'body');
+
+	if (head && body && elements.length > 2) throw new Error('Invalid structure, only one head and/or one body allowed unless none is present');
+	if (head && head.children.length > 0 && body && body.children.length === 0) return head.children;
+	if (head && head.children.length === 0 && body && body.children.length > 0) return body.children;
+	// else return both body and head, or the whole tree if neither is present
+	return elements;
 }
 
 
