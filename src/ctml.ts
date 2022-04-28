@@ -359,6 +359,11 @@ function generateHTML(elements: CtmlElement[], enforceStructure: boolean, indent
 			html += '<!DOCTYPE html>\n';
 			html += '<html>\n';
 			enforceStructureEndFunc = () => html += '</html>\n';
+		}else if (elements.length === 1 && elements[0].tag === 'head') {
+			// If elements contains a <head> and <body> tag, add a <!DOCTYPE html> tag to the beginning
+			html += '<!DOCTYPE html>\n';
+			html += '<html>\n';
+			enforceStructureEndFunc = () => html += '</html>\n';
 		} else if (elements.length === 1 && elements[0].tag === 'body') {
 			// If elements contains a <body> tag, add a <!DOCTYPE html> tag to the beginning
 			html += '<!DOCTYPE html>\n';
