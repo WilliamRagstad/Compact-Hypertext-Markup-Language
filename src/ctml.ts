@@ -237,7 +237,27 @@ function parseContent(content: string): CtmlElement[] {
             throw new Error(`Invalid state`);
         }
         // If c is a forward slash, we're nesting an element
-        if (c === '/') nesting++;
+        if (c === '/' && nc === '{') {
+            nesting++;
+            next(2);
+            let stack = 0;
+            let nestedContent = '';
+            while(true) {
+                if (content[i] === '/' && content[i+1] === '{') stack++;
+                if (content[i] === '}') {
+                    if (stack == 0) break;
+                    stack--;
+                }
+                nestedContent += content[i];
+                i++;
+            }
+            const nestedElements = parseContent(nestedContent.trim());
+            nestedElements.forEach(e => {
+                insertElement(e, nesting);
+            });
+            nesting--;
+        }
+        else if (c === '/') nesting++;
         else if (c === ';' || c === '\n') nesting = 0;
         // If c is alphabetical, it's a tag name
         if (isLetter(c)) {
