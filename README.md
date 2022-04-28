@@ -23,6 +23,15 @@ div/h1/'This text is in the title'		         /* Raw text is denoted using quotes
 script/`
     console.log("Hello World!");
 `
+section/{
+    h2/'This text is in the section'
+    p/{
+        span/{
+            b/'This text'
+        }
+        ' is in the paragraph'
+    }
+}
 ```
 
 Translates to the following HTML:
