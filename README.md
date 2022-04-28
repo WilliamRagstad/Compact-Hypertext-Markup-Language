@@ -24,7 +24,7 @@ script/`                                            /* Multiline strings, three 
     console.log("Hello World!");
 `
 section/{                                           /* Support for blocks with elements of the same nesting level */
-    h2/"This text is in the section"
+    h2/"This title is in the section header"
     p/{                                             /* Blocks can also be nested inside other blocks */
         span/{
             b/'This text'
@@ -51,6 +51,15 @@ Translates to the following HTML:
 <script>
     console.log("Hello World!");
 </script>
+<section>
+    <h2>
+        This title is in the section header
+    </h2>
+    <p>
+        <span><b>This text</b></span>
+        is in the paragraph
+    </p>
+</section>
 ```
 
 ## Development
