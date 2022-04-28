@@ -11,7 +11,7 @@ import fs, { stat } from 'fs';
 */
 
 
-const DEBUG = true;
+const DEBUG = false;
 
 
 /*
