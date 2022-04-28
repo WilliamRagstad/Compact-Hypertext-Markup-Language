@@ -14,22 +14,22 @@ The tool will also support linting, formatting and much more.
 ## Examples
 
 ```dart
-$Y: .Yellow                                          /* Variable Y referencing a class name */
-form#t$Y?action='/validate'?method=POST              /* Optional quotes for single word strings */
-/input?name=full_name?placeholder='Enter your name'  /* The number of / indicates nesting level */
-/button?onSubmit=`alert("Submitting form...")`       /* Elements with the same nesting level are siblings */
-/ /'Submit'                                          /* Child of form and child of button (last-last) */
-div/h1/'This text is in the title'                   /* Raw text is denoted using quotes instead of a tagname*/
-script/`
+$Y: .Yellow                                         /* Variable Y referencing a class name */
+form#t$Y?action="/validate"?method=POST             /* Optional quotes for single word strings */
+/input?name=full_name?placeholder='Enter your name' /* The number of / indicates nesting level */
+/button?onSubmit=`alert("Submitting form...")`      /* Elements with the same nesting level are siblings */
+/ /'Submit'                                         /* Child of form and child of button (last-last) */
+div/h1/'This text is in the title'                  /* Raw text is denoted using quotes instead of a tagname*/
+script/`                                            /* Multiline strings, three different types ", ' and ` */
     console.log("Hello World!");
 `
-section/{
-    h2/'This text is in the section'
-    p/{
+section/{                                           /* Support for blocks with elements of the same nesting level */
+    h2/"This text is in the section"
+    p/{                                             /* Blocks can also be nested inside other blocks */
         span/{
             b/'This text'
         }
-        ' is in the paragraph'
+        " is in the paragraph"
     }
 }
 ```
